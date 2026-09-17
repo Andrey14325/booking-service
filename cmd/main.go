@@ -5,6 +5,7 @@ import (
 	"booking-service/internal/handlers"
 	"booking-service/internal/router"
 	"booking-service/internal/server"
+	"booking-service/internal/storage"
 	"context"
 	"log/slog"
 	"os"
@@ -32,6 +33,13 @@ func main() {
 		syscall.SIGTERM,
 	)
 	defer stop()
+
+	pool, err := storage.NewPostgresStorage(ctx, cfg.Database)
+	if err != nil {
+		logger.Error("error database connection", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer pool.Close()
 
 	if err := serv.RunServer(ctx); err != nil {
 		logger.Error("error running server", slog.Any("error", err))
