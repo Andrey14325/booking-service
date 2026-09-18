@@ -11,6 +11,8 @@ func SetupRoutes(serv *server.Server, h *handlers.Handler) {
 	mux := serv.GetMux()
 
 	mux.HandleFunc("GET /health", h.Health)
+	mux.HandleFunc("POST /api/v1/events", h.CreateEvent)
+	mux.HandleFunc("GET /api/v1/events/{id}", h.GetEvent)
 
 	var handler http.Handler = mux
 
