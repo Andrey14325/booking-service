@@ -35,8 +35,10 @@ func main() {
 
 	eventStorage := storage.NewEventStorage(pool)
 	eventService := service.NewEventService(eventStorage)
+	reservationStorage := storage.NewReservationStorage(pool)
+	reservationService := service.NewReservationService(reservationStorage)
 
-	handl := handlers.New(logger, eventService)
+	handl := handlers.New(logger, eventService, reservationService)
 
 	serv, err := server.NewServer(logger, cfg.ServAddress)
 	if err != nil {

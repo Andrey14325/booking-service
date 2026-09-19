@@ -15,14 +15,16 @@ const (
 )
 
 type Handler struct {
-	logger       *slog.Logger
-	eventService *service.EventService
+	logger             *slog.Logger
+	eventService       *service.EventService
+	reservationService *service.ReservationService
 }
 
-func New(logger *slog.Logger, eventService *service.EventService) *Handler {
+func New(logger *slog.Logger, eventService *service.EventService, reservationService *service.ReservationService) *Handler {
 	return &Handler{
-		logger:       logger,
-		eventService: eventService,
+		logger:             logger,
+		eventService:       eventService,
+		reservationService: reservationService,
 	}
 }
 
@@ -95,6 +97,58 @@ func (h *Handler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(event); err != nil {
 		h.logger.Error("failed to write get event response", slog.String("error", err.Error()))
+	}
+}
+
+func (h *Handler) CreateReservation(w http.ResponseWriter, r *http.Request) {
+	eventID, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		h.logger.Error("invalid event id",
+			slog.String("id", r.PathValue("id")),
+			slog.String("error", err.Error()),
+		)
+		writeError(w, http.StatusBadRequest, "invalid event id")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBodySize)
+	defer r.Body.Close()
+
+	var req struct {
+		UserID string `json:"user_id"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		h.logger.Error("invalid create reservation request", slog.String("error", err.Error()))
+		writeError(w, http.StatusBadRequest, "invalid create reservation request")
+		return
+	}
+
+	id, err := h.reservationService.CreateReservation(r.Context(), eventID.String(), req.UserID)
+	if err != nil {
+		h.logger.Error("error creating reservation", slog.String("error", err.Error()))
+		if errors.Is(err, service.ErrNotFound) {
+			writeError(w, http.StatusNotFound, "event not found")
+			return
+		}
+		if errors.Is(err, service.ErrNoSlots) {
+			writeError(w, http.StatusConflict, "no available slots")
+			return
+		}
+		if errors.Is(err, service.ErrValidation) {
+			writeError(w, http.StatusBadRequest, "invalid request")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(map[string]string{"id": id}); err != nil {
+		h.logger.Error("failed to write create reservation response", slog.String("error", err.Error()))
 	}
 }
 
