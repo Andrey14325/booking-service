@@ -111,6 +111,8 @@ func (h *Handler) CreateReservation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	idempotencyKey := r.Header.Get("Idempotency-Key")
+
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBodySize)
 	defer r.Body.Close()
 
@@ -126,7 +128,7 @@ func (h *Handler) CreateReservation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.reservationService.CreateReservation(r.Context(), eventID.String(), req.UserID)
+	id, err := h.reservationService.CreateReservation(r.Context(), eventID.String(), req.UserID, idempotencyKey)
 	if err != nil {
 		h.logger.Error("error creating reservation", slog.String("error", err.Error()))
 		if errors.Is(err, service.ErrNotFound) {

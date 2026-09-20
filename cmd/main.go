@@ -7,11 +7,13 @@ import (
 	"booking-service/internal/server"
 	"booking-service/internal/service"
 	"booking-service/internal/storage"
+	"booking-service/internal/worker"
 	"context"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -47,6 +49,9 @@ func main() {
 	}
 
 	router.SetupRoutes(serv, handl)
+
+	expiryWorker := worker.NewExpiryWorker(reservationStorage, logger, 30*time.Second)
+	go expiryWorker.Run(ctx)
 
 	if err := serv.RunServer(ctx); err != nil {
 		logger.Error("error running server", slog.Any("error", err))

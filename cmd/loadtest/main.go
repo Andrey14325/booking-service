@@ -37,11 +37,10 @@ func main() {
 	var wg sync.WaitGroup
 	for i := 0; i < *workers; i++ {
 		wg.Go(func() {
-
 			reservationID := uuid.NewString()
 			userID := fmt.Sprintf("user-%d", i)
 
-			err := reservationStorage.CreateReservation(ctx, reservationID, *eventID, userID)
+			_, err := reservationStorage.CreateReservation(ctx, reservationID, *eventID, userID, "")
 			if err != nil {
 				atomic.AddInt64(&failCount, 1)
 				return
