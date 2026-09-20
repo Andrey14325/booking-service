@@ -40,7 +40,7 @@ func main() {
 			reservationID := uuid.NewString()
 			userID := fmt.Sprintf("user-%d", i)
 
-			_, err := reservationStorage.CreateReservation(ctx, reservationID, *eventID, userID, "")
+			_, err := reservationStorage.CreateReservation(ctx, reservationID, *eventID, userID, nil)
 			if err != nil {
 				atomic.AddInt64(&failCount, 1)
 				return

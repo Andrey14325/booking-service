@@ -12,7 +12,7 @@ import (
 var ErrNoSlots = errors.New("no available slots")
 
 type ReservationStorage interface {
-	CreateReservation(ctx context.Context, reservationID, eventID, userID, idempotencyKey string) (string, error)
+	CreateReservation(ctx context.Context, reservationID, eventID, userID string, idempotencyKey *string) (string, error)
 }
 
 type ReservationService struct {
@@ -23,7 +23,7 @@ func NewReservationService(storage ReservationStorage) *ReservationService {
 	return &ReservationService{storage: storage}
 }
 
-func (s *ReservationService) CreateReservation(ctx context.Context, eventID, userID, idempotencyKey string) (string, error) {
+func (s *ReservationService) CreateReservation(ctx context.Context, eventID, userID string, idempotencyKey *string) (string, error) {
 	if userID == "" {
 		return "", fmt.Errorf("user id is required: %w", ErrValidation)
 	}

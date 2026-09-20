@@ -20,20 +20,20 @@ func NewReservationStorage(pool *pgxpool.Pool) *ReservationStorage {
 	return &ReservationStorage{pool: pool}
 }
 
-func (s *ReservationStorage) CreateReservation(ctx context.Context, reservationID, eventID, userID, idempotencyKey string) (string, error) {
+func (s *ReservationStorage) CreateReservation(ctx context.Context, reservationID, eventID, userID string, idempotencyKey *string) (string, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return "", fmt.Errorf("begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	if idempotencyKey != "" {
+	if idempotencyKey != nil {
 		var oldReservationID string
 		err := tx.QueryRow(ctx, `
 			SELECT reservations_id 
 			FROM reservations 
 			WHERE event_id = $1 AND idempotency_key = $2`,
-			eventID, idempotencyKey).Scan(&oldReservationID)
+			eventID, *idempotencyKey).Scan(&oldReservationID)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 			} else {
@@ -77,10 +77,11 @@ func (s *ReservationStorage) CreateReservation(ctx context.Context, reservationI
 		event_id,
 		user_id,
 		status,
-		expires_at
+		idempotency_key,
+        expires_at
 		)
-		VALUES ($1, $2, $3, $4, NOW() + INTERVAL '10 minutes')`,
-		reservationID, eventID, userID, "pending",
+		VALUES ($1, $2, $3, $4, $5, NOW() + INTERVAL '10 minutes')`,
+		reservationID, eventID, userID, "pending", idempotencyKey,
 	)
 	if err != nil {
 		return "", fmt.Errorf("create reservation: %w", err)
