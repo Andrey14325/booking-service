@@ -17,5 +17,9 @@ func SetupRoutes(serv *server.Server, h *handlers.Handler) {
 
 	var handler http.Handler = mux
 
+	handler = h.RecoveryMiddleware(handler)
+	handler = h.LoggingMiddleware(handler)
+	handler = h.RequestIDMiddleware(handler)
+
 	serv.SetHandler(handler)
 }

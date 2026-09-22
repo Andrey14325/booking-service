@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"booking-service/internal/models"
 	"booking-service/internal/service"
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -14,13 +16,22 @@ const (
 	maxUploadBodySize = 1 << 20
 )
 
-type Handler struct {
-	logger             *slog.Logger
-	eventService       *service.EventService
-	reservationService *service.ReservationService
+type EventService interface {
+	CreateEvent(ctx context.Context, name string, totalSlots int) (string, error)
+	GetEvent(ctx context.Context, id string) (models.Event, error)
 }
 
-func New(logger *slog.Logger, eventService *service.EventService, reservationService *service.ReservationService) *Handler {
+type ReservationService interface {
+	CreateReservation(ctx context.Context, eventID, userID string, idempotencyKey *string) (string, error)
+}
+
+type Handler struct {
+	logger             *slog.Logger
+	eventService       EventService
+	reservationService ReservationService
+}
+
+func New(logger *slog.Logger, eventService EventService, reservationService ReservationService) *Handler {
 	return &Handler{
 		logger:             logger,
 		eventService:       eventService,
