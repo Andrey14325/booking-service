@@ -13,11 +13,24 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
-    build: .
+  migrate:
+    image: migrate/migrate:v4.17.0
+    volumes:
+      - ./migrations:/migrations
     depends_on:
       db:
         condition: service_healthy
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://postgres:postgres@db:5432/booking?sslmode=disable",
+      "up"
+    ]
+
+  app:
+    build: .
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "8080:8080"
     environment:
