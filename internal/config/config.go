@@ -1,10 +1,13 @@
 package config
 
-import "flag"
+import (
+	"flag"
+	"os"
+)
 
 const (
 	defAddress  = ":8080"
-	defDatabase = "postgres://postgres:postgres@localhost:5432/booking"
+	defDatabase = "postgres://postgres:postgres@localhost:5432/booking?sslmode=disable"
 )
 
 type Config struct {
@@ -17,6 +20,10 @@ func ParseConfig() Config {
 	flag.StringVar(&cfg.ServAddress, "addr", defAddress, "Server address")
 	flag.StringVar(&cfg.Database, "database", defDatabase, "Database address")
 	flag.Parse()
+
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		cfg.Database = dbURL
+	}
 
 	return cfg
 }
